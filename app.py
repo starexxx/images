@@ -1,7 +1,8 @@
 import os
 import requests
-import base64
 import json
+import zipfile
+import base64
 from flask import Flask, jsonify
 from threading import Thread
 
@@ -9,7 +10,8 @@ from threading import Thread
 current_directory = os.path.dirname(os.path.abspath(__file__))
 item_ids_file_path = os.path.join(current_directory, "Extracted_Item_IDs.json")
 save_directory = os.path.join(current_directory, "Temp_Icons")
-github_repo = "garenaa420/main_jwt_token"
+zip_file_path = os.path.join(current_directory, "All_Icons.zip")
+github_repo = "garena420/main_jwt_token"
 github_token = "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"
 
 # Flask App
@@ -24,6 +26,7 @@ with open(item_ids_file_path, 'r') as file:
     item_ids = json.load(file)
 progress["total"] = len(item_ids)
 
+
 def download_icon(item_id):
     url = base_url.format(number=item_id)
     try:
@@ -33,7 +36,6 @@ def download_icon(item_id):
             with open(file_path, 'wb') as file:
                 file.write(response.content)
             print(f"Downloaded: {item_id}")
-            upload_to_github(file_path, f"{item_id}_rgb.astc")
         else:
             print(f"File not found for itemID: {item_id}")
     except Exception as e:
@@ -41,31 +43,51 @@ def download_icon(item_id):
     finally:
         progress["completed"] += 1
 
+
 def download_all_icons():
     for item_id in item_ids:
         download_icon(item_id)
+    create_zip()
+    upload_to_github()
 
-def upload_to_github(file_path, file_name):
-    with open(file_path, 'rb') as file:
+
+def create_zip():
+    with zipfile.ZipFile(zip_file_path, 'w') as zipf:
+        for root, dirs, files in os.walk(save_directory):
+            for file in files:
+                file_path = os.path.join(root, file)
+                zipf.write(file_path, os.path.relpath(file_path, save_directory))
+    print(f"Created ZIP file at: {zip_file_path}")
+
+
+def upload_to_github():
+    with open(zip_file_path, 'rb') as file:
         content = file.read()
-        encoded_content = base64.b64encode(content).decode('utf-8')  # Proper Base64 encoding in Python 3
+        encoded_content = base64.b64encode(content).decode('utf-8')
+
+        # Construct the API URL
+        url = f"https://api.github.com/repos/{github_repo}/contents/{os.path.basename(zip_file_path)}"
+
+        # Debugging: Log the URL and payload
+        print(f"Uploading to URL: {url}")
 
         response = requests.put(
-            f"https://api.github.com/repos/{github_repo}/contents/{file_name}",
+            url,
             headers={
                 "Authorization": f"token {github_token}",
                 "Content-Type": "application/json",
             },
             json={
-                "message": f"Add {file_name}",
+                "message": "Add All_Icons.zip",
                 "content": encoded_content,
             }
         )
 
     if response.status_code in [200, 201]:
-        print(f"Uploaded {file_name} to GitHub successfully.")
+        print("Uploaded ZIP to GitHub successfully.")
     else:
-        print(f"Failed to upload {file_name} to GitHub: {response.content}")
+        print(f"Failed to upload ZIP to GitHub: {response.status_code}, {response.content.decode()}")
+
 
 @app.route('/progress', methods=['GET'])
 def check_progress():
@@ -75,10 +97,11 @@ def check_progress():
         "percentage": (progress["completed"] / progress["total"]) * 100 if progress["total"] > 0 else 0
     })
 
+
 if __name__ == '__main__':
     # Start the download process in a separate thread
     download_thread = Thread(target=download_all_icons)
     download_thread.start()
-    
+
     # Run Flask app
     app.run(debug=True, port=5000)
