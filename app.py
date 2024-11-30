@@ -47,7 +47,7 @@ def download_all_icons():
 def upload_to_github(file_path, file_name):
     with open(file_path, 'rb') as file:
         content = file.read()
-        encoded_content = content.encode("base64").decode("utf-8")  # Base64 encode the file content
+        encoded_content = base64.b64encode(content).decode('utf-8')  # Proper Base64 encoding in Python 3
 
         response = requests.put(
             f"https://api.github.com/repos/{github_repo}/contents/{file_name}",
