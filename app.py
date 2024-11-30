@@ -1,5 +1,6 @@
 import os
 import requests
+import base64
 import json
 from flask import Flask, jsonify
 from threading import Thread
