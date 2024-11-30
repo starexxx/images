@@ -8,7 +8,7 @@ from threading import Thread
 current_directory = os.path.dirname(os.path.abspath(__file__))
 item_ids_file_path = os.path.join(current_directory, "Extracted_Item_IDs.json")
 save_directory = os.path.join(current_directory, "Temp_Icons")
-github_repo = "garenaa420/main_token_jwt"
+github_repo = "garenaa420/main_jwt_token"
 github_token = "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"
 
 # Flask App
