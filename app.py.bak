@@ -1,0 +1,249 @@
+from flask import Flask, render_template_string
+
+app = Flask(__name__)
+
+@app.route('/akiru-player-info-web')
+def player_info():
+    html_code = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>AKIRU Player Info</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                font-family: 'Roboto', sans-serif;
+                background-color: #121212;
+                color: #e0e0e0;
+                line-height: 1.6;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                flex-direction: column;
+                text-align: center;
+            }
+            h1 {
+                font-size: 2.5rem;
+                margin-bottom: 30px;
+                font-weight: 700;
+                color: #ffffff;
+            }
+            input, button {
+                padding: 12px;
+                font-size: 1rem;
+                margin: 10px;
+                border-radius: 8px;
+                border: none;
+                outline: none;
+            }
+            input {
+                width: 250px;
+                background-color: #333;
+                color: #fff;
+                border: 1px solid #444;
+            }
+            button {
+                background-color: #6200ea;
+                color: #fff;
+                cursor: pointer;
+                width: 270px;
+                transition: background-color 0.3s;
+            }
+            button:hover {
+                background-color: #3700b3;
+            }
+            .player-header {
+                margin-bottom: 30px;
+                color: #fff;
+            }
+            .avatar {
+                width: 150px;
+                height: 150px;
+                border-radius: 50%;
+                margin: 20px auto;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            }
+            pre {
+                background-color: #1e1e1e;
+                padding: 20px;
+                border-radius: 10px;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                color: #b0bec5;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+                font-family: 'Courier New', monospace;
+                margin-top: 20px;
+            }
+            .outfit-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 15px;
+                margin-top: 20px;
+            }
+            .outfit-grid img {
+                width: 100%;
+                height: auto;
+                border-radius: 10px;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+                transition: transform 0.3s;
+            }
+            .outfit-grid img:hover {
+                transform: scale(1.1);
+            }
+            .error-message {
+                color: #ff5252;
+                font-size: 1.2rem;
+                margin-top: 20px;
+            }
+            .footer {
+                font-size: 1rem;
+                color: #b0bec5;
+                margin-top: 50px;
+            }
+        </style>
+    </head>
+    <body>
+
+    <h1>AKIRU Player Info</h1>
+
+    <div>
+        <label for="uid" style="font-size: 1.2rem; color: #fff;">Enter UID:</label>
+        <input type="text" id="uid" placeholder="Player UID">
+        <br>
+        <label for="region" style="font-size: 1.2rem; color: #fff;">Enter Region:</label>
+        <input type="text" id="region" placeholder="Region">
+        <br><br>
+        <button onclick="fetchPlayerInfo()">Fetch Player Info</button>
+    </div>
+
+    <div id="player-info"></div>
+    <div id="outfits"></div>
+
+    <div class="footer">
+        Don't forget to join our Telegram group for more info: <br>
+        <a href="https://t.me/IShowAkiru5" target="_blank" style="color: #6200ea; text-decoration: none;">Join Now</a>
+    </div>
+
+    <script>
+        function fetchPlayerInfo() {
+            const uid = document.getElementById("uid").value;
+            const region = document.getElementById("region").value;
+
+            if (!uid || !region) {
+                alert("Please enter both UID and Region");
+                return;
+            }
+
+            // Using CORS Proxy to bypass CORS issue
+            const apiUrl = `https://cors-anywhere.herokuapp.com/https://freefireinfoapiv2-lk-team.vercel.app/api/playerstats?uid=${uid}&region=${region}&api_key=PRINCE-PERM-KEY`;
+
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data && data.AccountInfo) {
+                        displayPlayerInfo(data);
+                        displayOutfitAndWeapons(data);
+                    } else {
+                        throw new Error("Player data not found.");
+                    }
+                })
+                .catch(error => {
+                    document.getElementById("player-info").innerHTML = `
+                        <p class="error-message">Failed to load player information: ${error.message}. Please try again later.</p>
+                    `;
+                    console.error('Error fetching data:', error);
+                });
+        }
+
+        function displayPlayerInfo(data) {
+            const playerInfoDiv = document.getElementById("player-info");
+
+            const accountInfo = data.AccountInfo;
+            const captainInfo = data.captainBasicInfo;
+            const petInfo = data.petInfo;
+            const socialInfo = data.socialinfo;
+
+            playerInfoDiv.innerHTML = `
+                <div class="player-header">
+                    <h2>${accountInfo.AccountName}</h2>
+                    <img src="https://ff-items-lk.vercel.app/myitem?item_id=${accountInfo.AccountAvatarId}&key=PRINCE" alt="Avatar" class="avatar">
+                </div>
+                <pre>
+    ╔════════════════════════════════════╗
+    ║                 𝗙𝗥𝗘𝗘 𝗙𝗜𝗥𝗘 𝗣𝗟𝗔𝗬𝗘𝗥 𝗜𝗡𝗙𝗢
+    ╚════════════════════════════════════╝
+    ┌ 👨‍💻 ACCOUNT BASIC INFO 
+    ├─ Name: ${accountInfo.AccountName}
+    ├─ UID: ${captainInfo.accountId}
+    ├─ Level: ${captainInfo.level} (Exp: ${captainInfo.exp})
+    ├─ Region: ${accountInfo.AccountRegion}
+    ├─ Likes: ${accountInfo.AccountLikes}
+    ├─ Celebrity Status: ${accountInfo.AccountType === 1 ? "True" : "False"}
+    ├─ Title: ${accountInfo.Title}
+    └─ Signature: ${socialInfo.AccountSignature}
+        
+    ┌ 🎮 ACCOUNT ACTIVITY 
+    ├─ Most Recent OB: ${accountInfo.ReleaseVersion}
+    ├─ Fire Pass: ${accountInfo.AccountSeasonId ? "Elite" : "Basic"}
+    ├─ BR Rank: ${accountInfo.BrMaxRank} (Points: ${accountInfo.BrRankPoint})
+    ├─ CS Points: ${accountInfo.CsRankPoint}
+    └─ Last Login: ${new Date(accountInfo.AccountLastLogin * 1000).toLocaleString()}
+        
+    ┌ 👕 ACCOUNT OVERVIEW 
+    ├─ Avatar ID: ${accountInfo.AccountAvatarId}
+    ├─ Equipped Banner: ${accountInfo.AccountBPID}
+    ├─ Equipped Weapons: ${accountInfo.EquippedWeapon.map(w => w).join(", ")}
+    └─ Equipped Skills: ${data.AccountProfileInfo.EquippedSkills.join(", ")}
+
+    ┌ 🐾 PET DETAILS 
+    ├─ Pet Name: ${petInfo.name || "N/A"}
+    ├─ Pet Exp: ${petInfo.exp}
+    └─ Pet Level: ${petInfo.level}
+
+    ┌ 🛡️ GUILD INFO 
+    ├─ Guild Name: ${data.GuildInfo.GuildName}
+    ├─ Guild Level: ${data.GuildInfo.GuildLevel}
+    ═════════════════════════════════════
+    Don't Forget To Join Our Telegram Group For More Info
+       └─ https://t.me/IShowAkiru5
+    </pre>`;
+        }
+
+        function displayOutfitAndWeapons(data) {
+            const outfitGrid = document.getElementById("outfits");
+
+            const equippedOutfits = data.AccountProfileInfo.EquippedOutfitImages;
+            const equippedWeapons = data.AccountInfo.EquippedWeaponImages;
+
+            outfitGrid.innerHTML = `
+                <h3 style="color: #fff;">Equipped Outfits</h3>
+                <div class="outfit-grid">
+                    ${equippedOutfits.map(image => `<img src="${image}" alt="Outfit">`).join('')}
+                </div>
+                <h3 style="color: #fff;">Equipped Weapons</h3>
+                <div class="outfit-grid">
+                    ${equippedWeapons.map(image => `<img src="${image}" alt="Weapon">`).join('')}
+                </div>
+            `;
+        }
+    </script>
+
+    </body>
+    </html>
+    """
+    return render_template_string(html_code)
+
+if __name__ == '__main__':
+    app.run(debug=True)
